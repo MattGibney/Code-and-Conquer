@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Structure = {
   width: number;
@@ -33,16 +33,17 @@ type Data = {
 };
 
 export function App() {
-  useEffect(() => {
-    let data = {
-      teams: [],
-      map: {
-        size: { width: 0, height: 0 },
-        cliffs: [],
-        structures: [],
-      },
-    } as Data;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [data, setData] = useState<Data>({
+    teams: [],
+    map: {
+      size: { width: 0, height: 0 },
+      cliffs: [],
+      structures: [],
+    },
+  });
 
+  useEffect(() => {
     const socket = new WebSocket('ws://localhost:3001');
 
     socket.onopen = () => {
@@ -50,68 +51,26 @@ export function App() {
     };
 
     socket.onmessage = (event) => {
-      data = event.data;
+      setData(JSON.parse(event.data));
     };
 
     socket.onclose = () => {
       console.log('WebSocket connection closed.');
     };
 
-    // const data = {
-    //   teams: [
-    //     {
-    //       id: 'TM-01HWFHTZDN3FJEDPAEJN256SZ3',
-    //       name: 'Team 1',
-    //       colour: 'red',
-    //       units: [
-    //         {
-    //           rotation: 0,
-    //           position: { x: 100, y: 50 },
-    //         },
-    //         {
-    //           rotation: 90,
-    //           position: { x: 115, y: 50 },
-    //         },
-    //       ],
-    //     }
-    //   ] as Team[],
-    //   map: {
-    //     size: { width: 500, height: 700 },
-    //     cliffs: [
-    //       {
-    //         points: [
-    //           { x: 0, y: 150 },
-    //           { x: 100, y: 165 },
-    //           { x: 180, y: 152 },
-    //         ],
-    //       },
-    //       {
-    //         points: [
-    //           { x: 265, y: 75 },
-    //           { x: 286, y: 33 },
-    //           { x: 282, y: 0 },
-    //         ],
-    //       }
-    //     ] as Cliff[],
-    //     structures: [
-    //       {
-    //         width: 25,
-    //         height: 17,
-    //         rotation: 20,
-    //         position: { x: 200, y: 240 },
-    //       },
-    //       {
-    //         width: 20,
-    //         height: 20,
-    //         rotation: 35,
-    //         position: { x: 200, y: 200 },
-    //       }
-    //     ] as Structure[],
-    //   },
-    // } as Data;
+    return () => {
+      socket.close();
+    };
+  }, []);
 
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    if (!ctx) return;
+
+    let requestId: number;
 
     const drawUnit = (unit: Unit, team: Team) => {
       ctx.resetTransform();
@@ -194,20 +153,21 @@ export function App() {
         });
       });
 
-      requestAnimationFrame(draw);
+      requestId = requestAnimationFrame(draw);
     };
 
-    requestAnimationFrame(draw);
+    draw();
 
     return () => {
-      socket.close();
+      cancelAnimationFrame(requestId);
     };
-  }, []);
+  }, [data]);
+
 
 
   return (
     <div>
-      <canvas id="canvas" style={{ border: '1px solid #000', margin: '20px' }}></canvas>
+      <canvas ref={canvasRef} id="canvas" style={{ border: '1px solid #000', margin: '20px' }}></canvas>
     </div>
   );
 }
