@@ -1,36 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-type Structure = {
-  width: number;
-  height: number;
-  rotation: number;
-  position: { x: number; y: number };
-};
-
-type Cliff = {
-  points: { x: number; y: number }[];
-}
-
-type Unit = {
-  position: { x: number; y: number };
-  rotation: number;
-};
-
-type Team = {
-  id: string;
-  name: string;
-  colour: string;
-  units: Unit[];
-};
-
-type Data = {
-  teams: Team[];
-  map: {
-    size: { width: number; height: number };
-    cliffs: Cliff[];
-    structures: Structure[];
-  };
-};
+import { Cliff, Data, Structure, Team, Unit } from '@code-and-conquer/interfaces';
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,25 +10,45 @@ export function App() {
       cliffs: [],
       structures: [],
     },
+    units: [],
   });
 
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:3001');
+    let socket: WebSocket | null = null;
+    let reconnectInterval: NodeJS.Timeout | null = null;
 
-    socket.onopen = () => {
-      console.log('WebSocket connection established.');
+    const connect = () => {
+      socket = new WebSocket('ws://localhost:3001');
+
+      socket.onopen = () => {
+        console.log('WebSocket connection established.');
+        if (reconnectInterval) {
+          clearInterval(reconnectInterval);
+          reconnectInterval = null;
+        }
+      };
+
+      socket.onmessage = (event) => {
+        setData(JSON.parse(event.data));
+      };
+
+      socket.onclose = () => {
+        console.log('WebSocket connection closed.');
+        if (!reconnectInterval) {
+          reconnectInterval = setInterval(connect, 1000);
+        }
+      };
     };
 
-    socket.onmessage = (event) => {
-      setData(JSON.parse(event.data));
-    };
-
-    socket.onclose = () => {
-      console.log('WebSocket connection closed.');
-    };
+    connect();
 
     return () => {
-      socket.close();
+      if (socket) {
+        socket.close();
+      }
+      if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+      }
     };
   }, []);
 
@@ -146,11 +135,9 @@ export function App() {
         drawStructure(structure);
       });
 
-      data.teams.forEach((team) => {
 
-        team.units.forEach((unit) => {
-          drawUnit(unit, team);
-        });
+      data.units.forEach((unit) => {
+        drawUnit(unit, data.teams[0]);
       });
 
       requestId = requestAnimationFrame(draw);

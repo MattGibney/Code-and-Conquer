@@ -1,0 +1,33 @@
+{
+  "size": { "width": 500, "height": 700 },
+  "cliffs": [
+    {
+      "points": [
+        { "x": 0, "y": 150 },
+        { "x": 100, "y": 165 },
+        { "x": 180, "y": 152 }
+      ]
+    },
+    {
+      "points": [
+        { "x": 265, "y": 75 },
+        { "x": 286, "y": 33 },
+        { "x": 282, "y": 0 }
+      ]
+    }
+  ],
+  "structures": [
+    {
+      "width": 25,
+      "height": 17,
+      "rotation": 20,
+      "position": { "x": 200, "y": 240 }
+    },
+    {
+      "width": 20,
+      "height": 20,
+      "rotation": 35,
+      "position": { "x": 200, "y": 200 }
+    }
+  ]
+}
