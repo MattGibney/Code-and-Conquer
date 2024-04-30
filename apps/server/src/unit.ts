@@ -14,19 +14,42 @@ export default class Unit {
     };
   }
 
-  moveForward() {
-    const speed =  5;
-    const angle = (Math.PI / 180) * this.rotation;
+  moveTowards(position: { x: number; y: number }) {
+    this.rotateTowards(position);
+
+    const dx = position.x - this.position.x;
+    const dy = position.y - this.position.y;
+    const angle = Math.atan2(dy, dx);
+
+    const speed = 5;
     this.position = {
-      x: this.position.x + speed * Math.sin(angle),
-      y: this.position.y - speed * Math.cos(angle),
+      x: this.position.x + speed * Math.cos(angle),
+      y: this.position.y + speed * Math.sin(angle),
     };
   }
 
-  rotate(degrees: number) {
-    this.rotation += degrees;
-    if (this.rotation >= 360) {
-      this.rotation -= 360;
+  rotateTowards(position: { x: number; y: number }) {
+    const dx = position.x - this.position.x;
+    const dy = position.y - this.position.y;
+    const targetAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const angleDifference = targetAngle - this.rotation;
+
+    // Ensure the angle difference is between -180 and 180
+    let normalizedAngleDifference = ((angleDifference + 180) % 360) - 180;
+    if (normalizedAngleDifference < -180) {
+      normalizedAngleDifference += 360;
     }
+
+    let speed = 30;
+    // scale speed based on the angle difference
+    if (Math.abs(normalizedAngleDifference) > 90) {
+      speed = speed * 2;
+    }
+
+    // Calculate the amount to rotate based on the speed
+    const rotationAmount = Math.sign(normalizedAngleDifference) * Math.min(Math.abs(normalizedAngleDifference), speed);
+
+    // Apply the rotation
+    this.rotation += rotationAmount;
   }
 }

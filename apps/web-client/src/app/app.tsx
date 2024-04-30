@@ -76,7 +76,7 @@ export function App() {
 
       ctx.beginPath();
       ctx.moveTo(unit.position.x, unit.position.y);
-      ctx.lineTo(unit.position.x, unit.position.y - 10);
+      ctx.lineTo(unit.position.x + 10, unit.position.y);
       ctx.stroke();
 
       ctx.restore();
