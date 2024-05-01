@@ -1,9 +1,14 @@
 import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
-import { Data, GameMap, Team } from '@code-and-conquer/interfaces';
+import { Data, GameMap, Position, Structure, Team } from '@code-and-conquer/interfaces';
 import Map from './map';
 import Unit from './unit';
+
+import { removeHoles } from 'poly-partition';
+
+
+
 
 // Create a WebSocket server
 const wss = new WebSocket.Server({ port: 3001 });
@@ -44,6 +49,17 @@ setInterval(() => {
   unit.moveTowards(waypoints[waypointIndex]);
 }, 60);
 
+// The main polygon (map boundary) needs to be specified anti-clockwise
+const fieldPolygon = [
+  { x: map.size.width, y: 0 },
+  { x: map.size.width, y: map.size.height },
+  { x: 0, y: map.size.height },
+  { x: 0, y: 0 },
+];
+
+const structurePolygons = map.structurePolygons();
+const merged = removeHoles(fieldPolygon, structurePolygons);
+
 // Send data to all connected clients every second
 setInterval(() => {
   wss.clients.forEach((client) => {
@@ -58,6 +74,8 @@ setInterval(() => {
         ] as Team[],
         map: map.serialize(),
         units: units.map((unit) => unit.serialize()),
+
+        navigationalMesh: merged,
       } as Data;
 
       client.send(JSON.stringify(data));

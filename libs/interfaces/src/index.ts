@@ -1,6 +1,5 @@
 export type GameMap = {
   size: { width: number; height: number };
-  cliffs: Cliff[];
   structures: Structure[];
 };
 
@@ -10,10 +9,6 @@ export type Structure = {
   rotation: number;
   position: { x: number; y: number };
 };
-
-export type Cliff = {
-  points: { x: number; y: number }[];
-}
 
 export type Unit = {
   position: { x: number; y: number };
@@ -30,8 +25,13 @@ export type Data = {
   teams: Team[];
   map: {
     size: { width: number; height: number };
-    cliffs: Cliff[];
-    structures: Structure[];
+    structures: Position[][];
   };
   units: Unit[];
+  navigationalMesh: { x: number; y: number }[];
 };
+
+export type Position = {
+  x: number;
+  y: number;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Cliff, Data, Structure, Team, Unit } from '@code-and-conquer/interfaces';
+import { Data, Position, Team, Unit } from '@code-and-conquer/interfaces';
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -7,10 +7,10 @@ export function App() {
     teams: [],
     map: {
       size: { width: 0, height: 0 },
-      cliffs: [],
       structures: [],
     },
     units: [],
+    navigationalMesh: [],
   });
 
   useEffect(() => {
@@ -85,51 +85,68 @@ export function App() {
     canvas.width = data.map.size.width;
     canvas.height = data.map.size.height;
 
-    const drawStructure = (structure: Structure) => {
-      const centrePoint = {
-        x: structure.position.x + structure.width / 2,
-        y: structure.position.y + structure.height / 2,
-      };
-
-      ctx.resetTransform();
-      ctx.beginPath();
-
+    const drawStructure = (structure: Position[]) => {
       ctx.save();
-      ctx.translate(centrePoint.x, centrePoint.y);
-      ctx.rotate((Math.PI / 180) * structure.rotation);
-      ctx.translate(-centrePoint.x, -centrePoint.y);
-      ctx.rect(structure.position.x, structure.position.y, structure.width, structure.height);
-      ctx.strokeStyle = '#999999';
-      ctx.stroke();
 
-      // ctx.beginPath();
-      // ctx.arc(centrePoint.x, centrePoint.y, 1, 0, 2 * Math.PI);
-      // ctx.strokeStyle = 'black';
-      // ctx.stroke();
-      ctx.restore();
-    }
-
-    const drawCliff = (cliff: Cliff) => {
-      ctx.save();
       ctx.beginPath();
-      cliff.points.forEach((point, index) => {
+      structure.forEach((point, index) => {
         if (index === 0) {
           ctx.moveTo(point.x, point.y);
         } else {
           ctx.lineTo(point.x, point.y);
         }
       });
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#A8A68F';
+      ctx.closePath();
+      ctx.strokeStyle = '#999999';
       ctx.stroke();
+
       ctx.restore();
+
+
+      // const centrePoint = {
+      //   x: structure.position.x + structure.width / 2,
+      //   y: structure.position.y + structure.height / 2,
+      // };
+
+      // ctx.resetTransform();
+      // ctx.beginPath();
+
+      // ctx.save();
+      // ctx.translate(centrePoint.x, centrePoint.y);
+      // ctx.rotate((Math.PI / 180) * structure.rotation);
+      // ctx.translate(-centrePoint.x, -centrePoint.y);
+      // ctx.rect(structure.position.x, structure.position.y, structure.width, structure.height);
+      // ctx.strokeStyle = '#999999';
+      // ctx.stroke();
+
+      // // ctx.beginPath();
+      // // ctx.arc(centrePoint.x, centrePoint.y, 1, 0, 2 * Math.PI);
+      // // ctx.strokeStyle = 'black';
+      // // ctx.stroke();
+      // ctx.restore();
     }
+
+    const drawNavigationalMesh = (navigationalMesh: { x: number; y: number }[]) => {
+      ctx.save();
+      ctx.beginPath();
+      navigationalMesh.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'blue';
+      ctx.fillStyle = '#0000FF11';
+      ctx.stroke();
+      ctx.fill();
+
+      ctx.restore();
+    };
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      data.map.cliffs.forEach((cliff) => {
-        drawCliff(cliff);
-      });
 
       data.map.structures.forEach((structure) => {
         drawStructure(structure);
@@ -139,6 +156,8 @@ export function App() {
       data.units.forEach((unit) => {
         drawUnit(unit, data.teams[0]);
       });
+
+      drawNavigationalMesh(data.navigationalMesh);
 
       requestId = requestAnimationFrame(draw);
     };
