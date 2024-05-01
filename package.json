@@ -7,6 +7,8 @@
   "dependencies": {
     "@swc/helpers": "0.5.11",
     "axios": "^1.6.0",
+    "navmesh": "^2.3.1",
+    "navmesh-generator": "^1.0.3",
     "poly-partition": "^1.0.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",

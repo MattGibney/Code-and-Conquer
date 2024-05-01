@@ -157,7 +157,9 @@ export function App() {
         drawUnit(unit, data.teams[0]);
       });
 
-      drawNavigationalMesh(data.navigationalMesh);
+      data.navigationalMesh.forEach((polygon) => {
+        drawNavigationalMesh(polygon);
+      });
 
       requestId = requestAnimationFrame(draw);
     };

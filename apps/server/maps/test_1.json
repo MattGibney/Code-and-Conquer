@@ -1,5 +1,5 @@
 {
-  "size": { "width": 500, "height": 700 },
+  "size": { "width": 700, "height": 700 },
   "structures": [
     {
       "width": 25,
@@ -24,6 +24,12 @@
       "height": 15,
       "rotation": 0,
       "position": { "x": 100, "y": 300 }
+    },
+    {
+      "width": 200,
+      "height": 15,
+      "rotation": 10,
+      "position": { "x": 200, "y": 500 }
     }
   ]
 }

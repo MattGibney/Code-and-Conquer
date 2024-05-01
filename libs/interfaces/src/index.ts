@@ -28,7 +28,7 @@ export type Data = {
     structures: Position[][];
   };
   units: Unit[];
-  navigationalMesh: { x: number; y: number }[];
+  navigationalMesh: { x: number; y: number }[][];
 };
 
 export type Position = {
