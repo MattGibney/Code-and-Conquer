@@ -1,77 +1,57 @@
-import { GameMap, Position, Structure } from '@code-and-conquer/interfaces';
+import { GameMap } from '@code-and-conquer/interfaces';
+import { VertexArray, NavMeshGenerator } from 'navmesh-generator';
+import { NavMesh } from 'navmesh';
+import Structure from './structure';
 
 export default class Map {
   public size: { width: number; height: number };
   public structures: Structure[];
 
+  public navMeshPolygons: VertexArray[] = [];
+  public navMesh: NavMesh | undefined;
+
   constructor(gameMap: GameMap) {
     this.size = gameMap.size;
-    this.structures = gameMap.structures;
+    this.structures = gameMap.structures.map((definition) => new Structure(definition));
+
+    this.generateNavMesh();
   }
 
   serialize() {
-    const structurePolygons = this.structurePolygons();
+    const structurePolygons = this.structures.map((structure) => structure.polygon);
     return {
       size: this.size,
       structures: structurePolygons,
     };
   }
 
-  structurePolygons() {
-    const structurePolygons = this.structures.map(this.rectangleToPolygon);
-    return structurePolygons;
+  findPath(start: { x: number; y: number }, end: { x: number; y: number }) {
+    if (!this.navMesh) return [];
+    return this.navMesh.findPath(start, end);
   }
 
-  rectangleToPolygon(rectangle: Structure): Position[] {
-    const { width, height, rotation, position } = rectangle;
-    const vertices: Position[] = [];
-
-    // Define rectangle vertices
-    const topLeft: Position = { x: -width / 2, y: -height / 2 };
-    const topRight: Position = { x: width / 2, y: -height / 2 };
-    const bottomRight: Position = { x: width / 2, y: height / 2 };
-    const bottomLeft: Position = { x: -width / 2, y: height / 2 };
-
-    // Apply rotation to each vertex
-    const theta = rotation * (Math.PI / 180); // Convert degrees to radians
-    const cosTheta = Math.cos(theta);
-    const sinTheta = Math.sin(theta);
-
-    function rotateVertex(vertex: Position): Position {
-      // Translate the vertex to the origin
-      const translatedX = vertex.x - position.x;
-      const translatedY = vertex.y - position.y;
-
-      // Perform the rotation
-      const rotatedX = translatedX * cosTheta - translatedY * sinTheta;
-      const rotatedY = translatedX * sinTheta + translatedY * cosTheta;
-
-      // Translate the vertex back
-      const finalX = rotatedX + position.x;
-      const finalY = rotatedY + position.y;
-
-      return { x: finalX, y: finalY };
-  }
-
-    vertices.push(
-      rotateVertex({
-        x: bottomLeft.x + position.x,
-        y: bottomLeft.y + position.y,
-      }),
-      rotateVertex({
-        x: bottomRight.x + position.x,
-        y: bottomRight.y + position.y,
-      }),
-      rotateVertex({
-        x: topRight.x + position.x,
-        y: topRight.y + position.y,
-      }),
-      rotateVertex({
-        x: topLeft.x + position.x,
-        y: topLeft.y + position.y,
-      }),
+  generateNavMesh() {
+    const areaLeftBound = 0;
+    const areaTopBound = 0;
+    const areaRightBound = this.size.width;
+    const areaBottomBound = this.size.height;
+    const rasterizationCellSize = 3;
+    const navMeshGenerator = new NavMeshGenerator(
+      areaLeftBound,
+      areaTopBound,
+      areaRightBound,
+      areaBottomBound,
+      rasterizationCellSize
     );
 
-    return vertices;
+    const obstacles = this.structures.map((structure) => structure.polygon);
+    const obstacleCellPadding = 3;
+    const navMeshPolygons = navMeshGenerator.buildNavMesh(
+      obstacles,
+      obstacleCellPadding
+    );
+
+    this.navMeshPolygons = navMeshPolygons;
+    this.navMesh = new NavMesh(navMeshPolygons);
   }
 }

@@ -12,6 +12,10 @@ export function App() {
     units: [],
     navigationalMesh: [],
   });
+  const [zoom, setZoom] = useState<number>(1);
+  const [offset, setOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState<boolean>(false);
+  const [lastPosition, setLastPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -62,7 +66,7 @@ export function App() {
     let requestId: number;
 
     const drawUnit = (unit: Unit, team: Team) => {
-      ctx.resetTransform();
+      // ctx.resetTransform();
 
       ctx.save();
       ctx.translate(unit.position.x, unit.position.y);
@@ -72,7 +76,9 @@ export function App() {
       ctx.beginPath();
       ctx.arc(unit.position.x, unit.position.y, 4, 0, 2 * Math.PI);
       ctx.strokeStyle = team.colour;
+      ctx.fillStyle = `${team.colour}33`;
       ctx.stroke();
+      ctx.fill();
 
       ctx.beginPath();
       ctx.moveTo(unit.position.x, unit.position.y);
@@ -82,8 +88,9 @@ export function App() {
       ctx.restore();
     };
 
-    canvas.width = data.map.size.width;
-    canvas.height = data.map.size.height;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
 
     const drawStructure = (structure: Position[]) => {
       ctx.save();
@@ -98,7 +105,9 @@ export function App() {
       });
       ctx.closePath();
       ctx.strokeStyle = '#999999';
+      ctx.fillStyle = '#99999911';
       ctx.stroke();
+      ctx.fill();
 
       ctx.restore();
 
@@ -126,40 +135,49 @@ export function App() {
       // ctx.restore();
     }
 
-    const drawNavigationalMesh = (navigationalMesh: { x: number; y: number }[]) => {
-      ctx.save();
-      ctx.beginPath();
-      navigationalMesh.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'blue';
-      ctx.fillStyle = '#0000FF11';
-      ctx.stroke();
-      ctx.fill();
+    // const drawNavigationalMesh = (navigationalMesh: { x: number; y: number }[]) => {
+    //   ctx.save();
+    //   ctx.beginPath();
+    //   navigationalMesh.forEach((point, index) => {
+    //     if (index === 0) {
+    //       ctx.moveTo(point.x, point.y);
+    //     } else {
+    //       ctx.lineTo(point.x, point.y);
+    //     }
+    //   });
+    //   ctx.lineWidth = 1;
+    //   ctx.strokeStyle = 'blue';
+    //   ctx.fillStyle = '#0000FF11';
+    //   ctx.stroke();
+    //   ctx.fill();
 
-      ctx.restore();
-    };
+    //   ctx.restore();
+    // };
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.scale(zoom, zoom);
+      ctx.translate(offset.x, offset.y);
+
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, data.map.size.width, data.map.size.height);
 
       data.map.structures.forEach((structure) => {
         drawStructure(structure);
       });
 
-
       data.units.forEach((unit) => {
         drawUnit(unit, data.teams[0]);
       });
 
-      data.navigationalMesh.forEach((polygon) => {
-        drawNavigationalMesh(polygon);
-      });
+      // data.navigationalMesh.forEach((polygon) => {
+      //   drawNavigationalMesh(polygon);
+      // });
+
+      ctx.restore();
 
       requestId = requestAnimationFrame(draw);
     };
@@ -169,13 +187,59 @@ export function App() {
     return () => {
       cancelAnimationFrame(requestId);
     };
-  }, [data]);
+  }, [data, offset.x, offset.y, zoom]);
 
 
+  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    setDragging(true);
+    setLastPosition({ x: event.clientX, y: event.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setDragging(false);
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (dragging) {
+      const newPosition = { x: event.clientX, y: event.clientY };
+      const dx = (newPosition.x - lastPosition.x) / zoom;
+      const dy = (newPosition.y - lastPosition.y) / zoom;
+      setOffset({ x: offset.x + dx, y: offset.y + dy });
+      setLastPosition(newPosition);
+    }
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
+    const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+    setZoom(zoom * zoomFactor);
+  };
 
   return (
-    <div>
-      <canvas ref={canvasRef} id="canvas" style={{ border: '1px solid #000', margin: '20px' }}></canvas>
+    <div className='flex'>
+      <canvas
+        ref={canvasRef}
+        id="canvas"
+        style={{
+          border: '1px solid #00000022',
+          backgroundColor: '#ffffff',
+          margin: '0px',
+          width: '60vw',
+          height: '100vh',
+          cursor: dragging ? 'grabbing' : 'grab',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onWheel={handleWheel}
+      ></canvas>
+      <div className='bg-zinc-100 flex-1 p-4'>
+
+        <button className='bg-cyan-600 text-white px-3 py-2 rounded' onClick={() => {
+          setZoom(1);
+          setOffset({ x: 0, y: 0 });
+        }}>Reset View</button>
+
+      </div>
     </div>
   );
 }

@@ -1,6 +1,11 @@
+import { Position } from '@code-and-conquer/interfaces';
+
 export default class Unit {
   public position: { x: number; y: number };
   public rotation: number;
+
+  public pathIndex = 0;
+  public navPath: Position[] = [];
 
   constructor(position: { x: number; y: number }, rotation: number) {
     this.position = position;
@@ -12,6 +17,28 @@ export default class Unit {
       position: this.position,
       rotation: this.rotation,
     };
+  }
+
+  run() {
+    if (this.navPath.length > 0) {
+      if (Math.abs(this.position.x - this.navPath[this.pathIndex].x) <= 5 && Math.abs(this.position.y - this.navPath[this.pathIndex].y) <= 5) {
+        this.pathIndex++;
+        if (this.pathIndex >= this.navPath.length) {
+          this.pathIndex = 0;
+          this.navPath = [];
+        }
+      }
+    }
+
+    const nextPosition = this.navPath[this.pathIndex];
+    if (!nextPosition) return;
+
+    this.moveTowards(nextPosition);
+  }
+
+  setNavPath(navPath: Position[]) {
+    this.navPath = navPath;
+    this.pathIndex = 0;
   }
 
   moveTowards(position: { x: number; y: number }) {

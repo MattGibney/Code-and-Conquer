@@ -1,9 +1,9 @@
 export type GameMap = {
   size: { width: number; height: number };
-  structures: Structure[];
+  structures: StructureDefinition[];
 };
 
-export type Structure = {
+export type StructureDefinition = {
   width: number;
   height: number;
   rotation: number;

@@ -1,4 +1,4 @@
-import { Data, Structure, Team, Unit } from '@code-and-conquer/interfaces';
+import { Data, StructureDefinition, Team, Unit } from '@code-and-conquer/interfaces';
 import { useEffect, useRef, useState } from 'react';
 
 export default function MapTest() {
