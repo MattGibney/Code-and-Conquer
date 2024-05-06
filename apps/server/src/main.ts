@@ -1,51 +1,118 @@
 import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
-import { Data, GameMap, Team } from '@code-and-conquer/interfaces';
+import { GameData, GameMap, TeamData } from '@code-and-conquer/interfaces';
 import Map from './map';
 import Unit from './unit';
+import Game from './game';
 
 // Create a WebSocket server
 const wss = new WebSocket.Server({ port: 3001 });
 
-const rawGameMap = fs.readFileSync(
-  path.join(__dirname, 'maps/test_1.json'),
-  'utf8'
-);
-const gameMap = JSON.parse(rawGameMap) as GameMap;
-const map = new Map(gameMap);
 
-const units = [
-  new Unit({ x: 100, y: 50 }, 0),
-  new Unit({ x: 115, y: 50 }, 0),
-];
 
-let waypointIndex = 0;
-const waypoints = [
-  { x: 200, y: 50 },
-  { x: 450, y: 680 },
-  { x: 300, y: 550 },
-  { x: 100, y: 550 },
-];
+const game = new Game('test_1');
 
-const unit = units[0];
-// Game Loop
+
+
+new Array(100).fill(0).forEach((_, i) => {
+  const x = 50 + (i % 40) * 10;
+  const y = 50 + Math.floor(i / 40) * 10;
+  game.units.push(
+    new Unit(
+      game,
+      { x, y },
+      0
+    )
+  );
+});
+
+
+
 setInterval(() => {
-  // If unit position is within 1 unit of the waypoint, move to the next waypoint
-  if (Math.abs(unit.position.x - waypoints[waypointIndex].x) <= 5 && Math.abs(unit.position.y - waypoints[waypointIndex].y) <= 5) {
-    waypointIndex++;
-    if (waypointIndex >= waypoints.length) {
-      waypointIndex = 0;
-    }
-  }
-
-  if (unit.navPath.length === 0) {
-    const navPath = map.findPath(units[0].position, waypoints[waypointIndex]);
-    unit.setNavPath(navPath);
-  }
-
-  units.forEach((unit) => unit.run());
+  game.tickGameLoop();
 }, 60);
+
+// const rawGameMap = fs.readFileSync(
+//   path.join(__dirname, 'maps/test_1.json'),
+//   'utf8'
+// );
+// const gameMap = JSON.parse(rawGameMap) as GameMap;
+
+// export interface Game {
+//   map: Map;
+//   units: Unit[];
+// }
+
+// const game: Game = {
+//   map: null as Map,
+//   units: [],
+// };
+
+// game.map = new Map(game, gameMap);
+
+// new Array(100).fill(0).forEach((_, i) => {
+//   const x = 50 + (i % 40) * 10;
+//   const y = 50 + Math.floor(i / 40) * 10;
+//   game.units.push(
+//     new Unit(
+//       game,
+//       { x, y },
+//       0
+//     )
+//   );
+// });
+
+// let waypointIndex = 0;
+// const waypoints = [
+//   { x: 250, y: 600 },
+//   { x: 50, y: 50 },
+//   { x: 250, y: 300 },
+// ];
+
+// Game Loop
+// setInterval(() => {
+//   game.map.generateNavMesh();
+
+//   game.units.forEach((unit) => {
+//     // If unit position is within 1 unit of the waypoint, move to the next waypoint
+//     if (Math.abs(unit.position.x - waypoints[waypointIndex].x) <= 5 && Math.abs(unit.position.y - waypoints[waypointIndex].y) <= 5) {
+//       waypointIndex++;
+//       if (waypointIndex >= waypoints.length) {
+//         waypointIndex = 0;
+//       }
+//     }
+
+//     if (unit.navPath && unit.navPath.length === 0) {
+//       unit.setTargetPosition(waypoints[waypointIndex]);
+//     }
+//   });
+
+//   game.units.forEach((unit) => {
+//     unit.run();
+//   });
+// }, 60);
+
+
+
+// listen to messages from clients
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    // console.log('received: %s', message);
+      const parsedMessage = JSON.parse(message.toString());
+      if (parsedMessage.type === 'set-waypoint') {
+        game.units.forEach((unit) => {
+          unit.setTargetPosition(parsedMessage.position);
+        });
+      }
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+
+
 
 // Send data to all connected clients every second
 setInterval(() => {
@@ -58,12 +125,12 @@ setInterval(() => {
             name: 'Team 1',
             colour: '#d95300',
           }
-        ] as Team[],
-        map: map.serialize(),
-        units: units.map((unit) => unit.serialize()),
+        ] as TeamData[],
+        map: game.map.serialize(),
+        units: game.units.map((unit) => unit.serialize()),
 
-        navigationalMesh: map.navMeshPolygons,
-      } as Data;
+        navigationalMesh: game.map.navMeshPolygons,
+      } as GameData;
 
       client.send(JSON.stringify(data));
     }

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Data, Position, Team, Unit } from '@code-and-conquer/interfaces';
+import { GameData, Position } from '@code-and-conquer/interfaces';
+import { drawNavigationalMesh, drawStructure, drawUnit } from '../render';
 
 export function App() {
+  const socket = useRef<WebSocket | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [data, setData] = useState<Data>({
+  const [data, setData] = useState<GameData>({
     teams: [],
     map: {
       size: { width: 0, height: 0 },
@@ -13,18 +15,20 @@ export function App() {
     navigationalMesh: [],
   });
   const [zoom, setZoom] = useState<number>(1);
-  const [offset, setOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [offset, setOffset] = useState<Position>({ x: 0, y: 0 });
   const [dragging, setDragging] = useState<boolean>(false);
-  const [lastPosition, setLastPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [lastPosition, setLastPosition] = useState<Position>({ x: 0, y: 0 });
+
+  const [isSettingWaypoints, setIsSettingWaypoints] = useState<boolean>(false);
 
   useEffect(() => {
-    let socket: WebSocket | null = null;
+    // let socket: WebSocket | null = null;
     let reconnectInterval: NodeJS.Timeout | null = null;
 
     const connect = () => {
-      socket = new WebSocket('ws://localhost:3001');
+      socket.current = new WebSocket('ws://localhost:3001');
 
-      socket.onopen = () => {
+      socket.current.onopen = () => {
         console.log('WebSocket connection established.');
         if (reconnectInterval) {
           clearInterval(reconnectInterval);
@@ -32,11 +36,11 @@ export function App() {
         }
       };
 
-      socket.onmessage = (event) => {
+      socket.current.onmessage = (event) => {
         setData(JSON.parse(event.data));
       };
 
-      socket.onclose = () => {
+      socket.current.onclose = () => {
         console.log('WebSocket connection closed.');
         if (!reconnectInterval) {
           reconnectInterval = setInterval(connect, 1000);
@@ -47,8 +51,8 @@ export function App() {
     connect();
 
     return () => {
-      if (socket) {
-        socket.close();
+      if (socket.current) {
+        socket.current.close();
       }
       if (reconnectInterval) {
         clearInterval(reconnectInterval);
@@ -65,94 +69,9 @@ export function App() {
 
     let requestId: number;
 
-    const drawUnit = (unit: Unit, team: Team) => {
-      // ctx.resetTransform();
-
-      ctx.save();
-      ctx.translate(unit.position.x, unit.position.y);
-      ctx.rotate((Math.PI / 180) * unit.rotation);
-      ctx.translate(-unit.position.x, -unit.position.y);
-
-      ctx.beginPath();
-      ctx.arc(unit.position.x, unit.position.y, 4, 0, 2 * Math.PI);
-      ctx.strokeStyle = team.colour;
-      ctx.fillStyle = `${team.colour}33`;
-      ctx.stroke();
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(unit.position.x, unit.position.y);
-      ctx.lineTo(unit.position.x + 10, unit.position.y);
-      ctx.stroke();
-
-      ctx.restore();
-    };
-
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
-
-    const drawStructure = (structure: Position[]) => {
-      ctx.save();
-
-      ctx.beginPath();
-      structure.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      ctx.closePath();
-      ctx.strokeStyle = '#999999';
-      ctx.fillStyle = '#99999911';
-      ctx.stroke();
-      ctx.fill();
-
-      ctx.restore();
-
-
-      // const centrePoint = {
-      //   x: structure.position.x + structure.width / 2,
-      //   y: structure.position.y + structure.height / 2,
-      // };
-
-      // ctx.resetTransform();
-      // ctx.beginPath();
-
-      // ctx.save();
-      // ctx.translate(centrePoint.x, centrePoint.y);
-      // ctx.rotate((Math.PI / 180) * structure.rotation);
-      // ctx.translate(-centrePoint.x, -centrePoint.y);
-      // ctx.rect(structure.position.x, structure.position.y, structure.width, structure.height);
-      // ctx.strokeStyle = '#999999';
-      // ctx.stroke();
-
-      // // ctx.beginPath();
-      // // ctx.arc(centrePoint.x, centrePoint.y, 1, 0, 2 * Math.PI);
-      // // ctx.strokeStyle = 'black';
-      // // ctx.stroke();
-      // ctx.restore();
-    }
-
-    // const drawNavigationalMesh = (navigationalMesh: { x: number; y: number }[]) => {
-    //   ctx.save();
-    //   ctx.beginPath();
-    //   navigationalMesh.forEach((point, index) => {
-    //     if (index === 0) {
-    //       ctx.moveTo(point.x, point.y);
-    //     } else {
-    //       ctx.lineTo(point.x, point.y);
-    //     }
-    //   });
-    //   ctx.lineWidth = 1;
-    //   ctx.strokeStyle = 'blue';
-    //   ctx.fillStyle = '#0000FF11';
-    //   ctx.stroke();
-    //   ctx.fill();
-
-    //   ctx.restore();
-    // };
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -166,16 +85,16 @@ export function App() {
       ctx.strokeRect(0, 0, data.map.size.width, data.map.size.height);
 
       data.map.structures.forEach((structure) => {
-        drawStructure(structure);
+        drawStructure(ctx, structure);
       });
 
       data.units.forEach((unit) => {
-        drawUnit(unit, data.teams[0]);
+        drawUnit(ctx, unit, data.teams[0]);
       });
 
-      // data.navigationalMesh.forEach((polygon) => {
-      //   drawNavigationalMesh(polygon);
-      // });
+      data.navigationalMesh.forEach((polygon) => {
+        drawNavigationalMesh(ctx, polygon);
+      });
 
       ctx.restore();
 
@@ -191,6 +110,17 @@ export function App() {
 
 
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isSettingWaypoints) {
+      socket.current?.send(JSON.stringify({
+        type: 'set-waypoint',
+        position: {
+          x: (event.clientX - offset.x) / zoom,
+          y: (event.clientY - offset.y) / zoom,
+        },
+      }));
+      return;
+    }
+
     setDragging(true);
     setLastPosition({ x: event.clientX, y: event.clientY });
   };
@@ -238,6 +168,13 @@ export function App() {
           setZoom(1);
           setOffset({ x: 0, y: 0 });
         }}>Reset View</button>
+
+        <button
+          className={`${isSettingWaypoints ? 'bg-cyan-800' : 'bg-cyan-600'} text-white px-3 py-2 rounded ml-2`}
+          onClick={() => setIsSettingWaypoints(!isSettingWaypoints)}
+        >
+          {isSettingWaypoints ? 'Cancel' : 'Set Waypoints'}
+        </button>
 
       </div>
     </div>
