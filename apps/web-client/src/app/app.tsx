@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { GameData, Position } from '@code-and-conquer/interfaces';
+import { GameData, Position, UnitData } from '@code-and-conquer/interfaces';
+import { Button } from '@code-and-conquer/react-components';
 import { drawNavigationalMesh, drawStructure, drawUnit } from '../render';
+
+const RENDER_DEFAULTS = {
+  zoom: 1.4,
+  offset: { x: 20, y: 20 },
+};
 
 export function App() {
   const socket = useRef<WebSocket | null>(null);
@@ -14,12 +20,18 @@ export function App() {
     units: [],
     navigationalMesh: [],
   });
-  const [zoom, setZoom] = useState<number>(1);
-  const [offset, setOffset] = useState<Position>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(RENDER_DEFAULTS.zoom);
+  const [offset, setOffset] = useState<Position>(RENDER_DEFAULTS.offset);
   const [dragging, setDragging] = useState<boolean>(false);
   const [lastPosition, setLastPosition] = useState<Position>({ x: 0, y: 0 });
 
   const [isSettingWaypoints, setIsSettingWaypoints] = useState<boolean>(false);
+
+  const [renderSettings, setRenderSettings] = useState({
+    renderNavMesh: false,
+  });
+
+  const [viewingData, setViewingData] = useState<UnitData | undefined>();
 
   useEffect(() => {
     // let socket: WebSocket | null = null;
@@ -83,6 +95,8 @@ export function App() {
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 1;
       ctx.strokeRect(0, 0, data.map.size.width, data.map.size.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, data.map.size.width, data.map.size.height);
 
       data.map.structures.forEach((structure) => {
         drawStructure(ctx, structure);
@@ -92,9 +106,11 @@ export function App() {
         drawUnit(ctx, unit, data.teams[0]);
       });
 
-      data.navigationalMesh.forEach((polygon) => {
-        drawNavigationalMesh(ctx, polygon);
-      });
+      if (renderSettings.renderNavMesh) {
+        data.navigationalMesh.forEach((polygon) => {
+          drawNavigationalMesh(ctx, polygon);
+        });
+      }
 
       ctx.restore();
 
@@ -106,7 +122,7 @@ export function App() {
     return () => {
       cancelAnimationFrame(requestId);
     };
-  }, [data, offset.x, offset.y, zoom]);
+  }, [data, offset.x, offset.y, zoom, renderSettings]);
 
 
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -151,7 +167,7 @@ export function App() {
         id="canvas"
         style={{
           border: '1px solid #00000022',
-          backgroundColor: '#ffffff',
+          backgroundColor: '#999999',
           margin: '0px',
           width: '60vw',
           height: '100vh',
@@ -162,20 +178,43 @@ export function App() {
         onMouseMove={handleMouseMove}
         onWheel={handleWheel}
       ></canvas>
-      <div className='bg-zinc-100 flex-1 p-4'>
+      <div className='bg-white flex-1 p-4'>
 
-        <button className='bg-cyan-600 text-white px-3 py-2 rounded' onClick={() => {
-          setZoom(1);
-          setOffset({ x: 0, y: 0 });
-        }}>Reset View</button>
+        <div className="flex flex-col gap-y-8">
+          <div>
+            <h2 className='text-xl font-semibold'>Toggles</h2>
+            <Button
+              isActive={renderSettings.renderNavMesh}
+              onClick={() => setRenderSettings({ ...renderSettings, renderNavMesh: !renderSettings.renderNavMesh })}
+            >
+              Render NavMesh
+            </Button>
+          </div>
+          <div>
+            <h2 className='text-xl font-semibold'>Game Actions</h2>
+            <button className='bg-cyan-600 text-white px-3 py-2 rounded' onClick={() => {
+              setZoom(RENDER_DEFAULTS.zoom);
+              setOffset(RENDER_DEFAULTS.offset);
+            }}>Reset View</button>
 
-        <button
-          className={`${isSettingWaypoints ? 'bg-cyan-800' : 'bg-cyan-600'} text-white px-3 py-2 rounded ml-2`}
-          onClick={() => setIsSettingWaypoints(!isSettingWaypoints)}
-        >
-          {isSettingWaypoints ? 'Cancel' : 'Set Waypoints'}
-        </button>
-
+            <button
+              className={`${isSettingWaypoints ? 'bg-cyan-800' : 'bg-cyan-600'} text-white px-3 py-2 rounded ml-2`}
+              onClick={() => setIsSettingWaypoints(!isSettingWaypoints)}
+            >
+              {isSettingWaypoints ? 'Cancel' : 'Set Waypoints'}
+            </button>
+          </div>
+          <div>
+            <h2 className='text-xl font-semibold'>Data</h2>
+            {viewingData ? (
+              <>Hi</>
+            ) : (
+              <div className="bg-gray-200 p-4 rounded-lg">
+                Click on a unit to view its data.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

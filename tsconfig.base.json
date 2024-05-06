@@ -15,7 +15,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@code-and-conquer/interfaces": ["libs/interfaces/src/index.ts"]
+      "@code-and-conquer/interfaces": ["libs/interfaces/src/index.ts"],
+      "@code-and-conquer/react-components": [
+        "libs/react-components/src/index.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]
