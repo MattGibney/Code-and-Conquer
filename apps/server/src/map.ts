@@ -53,6 +53,12 @@ export default class Map {
     return mesh.navMesh.findPath(unit.position, unit.targetPosition);
   }
 
+  updateNavMesh() {
+    const mesh = this.generateNavMesh();
+    this.navMesh = mesh.navMesh;
+    this.navMeshPolygons = mesh.navMeshPolygons;
+  }
+
   generateNavMesh(additionalObstacles: Position[][] = [], obstacleCellPadding = 3): { navMeshPolygons: VertexArray[]; navMesh: NavMesh } {
     this.game.units.forEach((unit) => {
       unit.updateBoundingPolygon();

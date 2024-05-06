@@ -10,11 +10,6 @@ export default class Game {
 
   public tick = 1;
 
-  constructor(mapName: string) {
-    const map = this.openGameMap(mapName);
-    this.map = new Map(this, map);
-  }
-
   tickGameLoop() {
     // console.log('Game loop tick');
 
@@ -28,11 +23,16 @@ export default class Game {
 
 
     // Update nav mesh
-    const mesh = this.map.generateNavMesh();
-    this.map.navMesh = mesh.navMesh;
-    this.map.navMeshPolygons = mesh.navMeshPolygons;
+    if (this.map) {
+      this.map.updateNavMesh();
+    }
 
     this.tick++;
+  }
+
+  loadMap(mapName: string) {
+    const map = this.openGameMap(mapName);
+    this.map = new Map(this, map);
   }
 
   openGameMap(mapName: string) {
@@ -42,5 +42,4 @@ export default class Game {
     );
     return JSON.parse(rawGameMap) as GameMap;
   }
-
 }
