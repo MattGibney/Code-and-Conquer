@@ -34,24 +34,24 @@ export default class Map {
     return navMesh.findPath(start, end);
   }
 
-  findAlternatePath(unit: Unit) {
-    // Find Units within a certain radius
-    const nearbyUnits = this.game.units.filter((otherUnit) => {
-      if (otherUnit === unit) return false;
-      const distance = Math.sqrt(
-        Math.pow(otherUnit.position.x - unit.position.x, 2) +
-          Math.pow(otherUnit.position.y - unit.position.y, 2)
-      );
+  // findAlternatePath(unit: Unit) {
+  //   // Find Units within a certain radius
+  //   const nearbyUnits = this.game.units.filter((otherUnit) => {
+  //     if (otherUnit === unit) return false;
+  //     const distance = Math.sqrt(
+  //       Math.pow(otherUnit.position.x - unit.position.x, 2) +
+  //         Math.pow(otherUnit.position.y - unit.position.y, 2)
+  //     );
 
-      return distance < 20;
-    });
-    const nearbyUnitsPolygons = nearbyUnits.map((otherUnit) => otherUnit.boundingPolygon);
+  //     return distance < 20;
+  //   });
+  //   const nearbyUnitsPolygons = nearbyUnits.map((otherUnit) => otherUnit.boundingPolygon);
 
-    // Generate a new nav mesh with the additional obstacles
-    const mesh = this.generateNavMesh(nearbyUnitsPolygons, 0);
+  //   // Generate a new nav mesh with the additional obstacles
+  //   const mesh = this.generateNavMesh(nearbyUnitsPolygons, 0);
 
-    return mesh.navMesh.findPath(unit.position, unit.targetPosition);
-  }
+  //   return mesh.navMesh.findPath(unit.position, unit.targetPosition);
+  // }
 
   updateNavMesh() {
     const mesh = this.generateNavMesh();

@@ -1,6 +1,6 @@
 import { Position, TeamData, UnitData } from '@code-and-conquer/interfaces';
 
-export function drawUnit(ctx: CanvasRenderingContext2D, unit: UnitData, team: TeamData) {
+export function drawUnit(ctx: CanvasRenderingContext2D, unit: UnitData, team: TeamData, renderSettings: { boundingPolygons: boolean }, isViewing: boolean) {
   ctx.save();
   ctx.translate(unit.position.x, unit.position.y);
   ctx.rotate((Math.PI / 180) * unit.rotation);
@@ -21,18 +21,30 @@ export function drawUnit(ctx: CanvasRenderingContext2D, unit: UnitData, team: Te
 
   ctx.restore();
 
-  // ctx.beginPath();
-  // unit.boundingPolygon.forEach((point, index) => {
-  //   if (index === 0) {
-  //     ctx.moveTo(point.x, point.y);
-  //   } else {
-  //     ctx.lineTo(point.x, point.y);
-  //   }
-  // });
-  // ctx.closePath();
-  // ctx.lineWidth = .5;
-  // ctx.strokeStyle = `${team.colour}`;
-  // ctx.stroke();
+  if (isViewing) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(unit.position.x, unit.position.y, 8, 0, 2 * Math.PI);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = team.colour;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (renderSettings.boundingPolygons) {
+    ctx.beginPath();
+    unit.boundingPolygon.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    ctx.closePath();
+    ctx.lineWidth = .5;
+    ctx.strokeStyle = `${team.colour}`;
+    ctx.stroke();
+  }
 
   if (unit.navigationPath && unit.navigationPath.length > 0) {
     ctx.save();

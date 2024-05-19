@@ -16,6 +16,7 @@ export type StructureDefinition = {
 };
 
 export type UnitData = {
+  id: string;
   position: Position;
   rotation: number;
   navigationPath: Position[];

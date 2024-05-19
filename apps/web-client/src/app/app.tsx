@@ -5,7 +5,7 @@ import { drawNavigationalMesh, drawStructure, drawUnit } from '../render';
 
 const RENDER_DEFAULTS = {
   zoom: 1.4,
-  offset: { x: 20, y: 20 },
+  offset: { x: 0, y: 0 },
 };
 
 export function App() {
@@ -29,7 +29,11 @@ export function App() {
 
   const [renderSettings, setRenderSettings] = useState({
     renderNavMesh: false,
+    panAndZoom: false,
+    boundingPolygons: false,
   });
+
+  const [clickedPosition, setClickedPosition] = useState<Position>({ x: 0, y: 0 });
 
   const [viewingData, setViewingData] = useState<UnitData | undefined>();
 
@@ -103,13 +107,21 @@ export function App() {
       });
 
       data.units.forEach((unit) => {
-        drawUnit(ctx, unit, data.teams[0]);
+        const isViewing = (viewingData && viewingData.id === unit.id) || false;
+        drawUnit(ctx, unit, data.teams[0], { boundingPolygons: renderSettings.boundingPolygons}, isViewing);
       });
 
       if (renderSettings.renderNavMesh) {
         data.navigationalMesh.forEach((polygon) => {
           drawNavigationalMesh(ctx, polygon);
         });
+      }
+
+      if (clickedPosition) {
+        ctx.beginPath();
+        ctx.arc(clickedPosition.x, clickedPosition.y, 1, 0, Math.PI * 2);
+        ctx.fillStyle = 'red';
+        ctx.fill();
       }
 
       ctx.restore();
@@ -122,30 +134,57 @@ export function App() {
     return () => {
       cancelAnimationFrame(requestId);
     };
-  }, [data, offset.x, offset.y, zoom, renderSettings]);
+  }, [data, offset.x, offset.y, zoom, renderSettings, viewingData, clickedPosition]);
 
 
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const clickPos = {
+      x: (event.clientX - offset.x) / zoom,
+      y: (event.clientY - offset.y) / zoom,
+    };
+
     if (isSettingWaypoints) {
       socket.current?.send(JSON.stringify({
         type: 'set-waypoint',
-        position: {
-          x: (event.clientX - offset.x) / zoom,
-          y: (event.clientY - offset.y) / zoom,
-        },
+        position: clickPos,
       }));
       return;
     }
 
-    setDragging(true);
-    setLastPosition({ x: event.clientX, y: event.clientY });
+    if (renderSettings.panAndZoom) {
+      setDragging(true);
+      setLastPosition({ x: event.clientX, y: event.clientY });
+      return;
+    }
+
+
+
+    console.log('Click at:', clickPos);
+    setClickedPosition(clickPos);
+
+    // Find unit with polygon within the position
+    const unit = data.units.find((unit) => {
+      return unit.boundingPolygon.some((point) => {
+        return Math.abs(point.x - clickPos.x) < 1 && Math.abs(point.y - clickPos.y) < 1;
+      });
+    });
+
+    if (unit) {
+      setViewingData(unit);
+    } else {
+      setViewingData(undefined);
+    }
   };
 
   const handleMouseUp = () => {
+    if (!renderSettings.panAndZoom) return;
+
     setDragging(false);
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!renderSettings.panAndZoom) return;
+
     if (dragging) {
       const newPosition = { x: event.clientX, y: event.clientY };
       const dx = (newPosition.x - lastPosition.x) / zoom;
@@ -156,6 +195,8 @@ export function App() {
   };
 
   const handleWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
+    if (!renderSettings.panAndZoom) return;
+
     const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
     setZoom(zoom * zoomFactor);
   };
@@ -171,7 +212,7 @@ export function App() {
           margin: '0px',
           width: '60vw',
           height: '100vh',
-          cursor: dragging ? 'grabbing' : 'grab',
+          cursor: renderSettings.panAndZoom ? dragging ? 'grabbing' : 'grab' : 'default',
         }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -183,12 +224,26 @@ export function App() {
         <div className="flex flex-col gap-y-8">
           <div>
             <h2 className='text-xl font-semibold'>Toggles</h2>
-            <Button
-              isActive={renderSettings.renderNavMesh}
-              onClick={() => setRenderSettings({ ...renderSettings, renderNavMesh: !renderSettings.renderNavMesh })}
-            >
-              Render NavMesh
-            </Button>
+            <div className='flex gap-x-1'>
+              <Button
+                isActive={renderSettings.renderNavMesh}
+                onClick={() => setRenderSettings({ ...renderSettings, renderNavMesh: !renderSettings.renderNavMesh })}
+              >
+                Render NavMesh
+              </Button>
+              <Button
+                isActive={renderSettings.boundingPolygons}
+                onClick={() => setRenderSettings({ ...renderSettings, boundingPolygons: !renderSettings.boundingPolygons })}
+              >
+                Render Bounding Polygons
+              </Button>
+              <Button
+                isActive={renderSettings.panAndZoom}
+                onClick={() => setRenderSettings({ ...renderSettings, panAndZoom: !renderSettings.panAndZoom })}
+              >
+                Pan / Zoom
+              </Button>
+            </div>
           </div>
           <div>
             <h2 className='text-xl font-semibold'>Game Actions</h2>

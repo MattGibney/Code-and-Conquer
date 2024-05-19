@@ -1,9 +1,12 @@
 import { Position, UnitData } from '@code-and-conquer/interfaces';
 import { rectangleToPolygon } from './utils';
 import Game from './game';
+import { ulid } from 'ulid';
 
 export default class Unit {
   public game: Game;
+
+  public id: string;
   public position: Position;
   public targetPosition: Position | null = null;
   public rotation: number;
@@ -20,6 +23,7 @@ export default class Unit {
   public boundingPolygon: Position[] = [];
 
   constructor(game: Game, position: Position, rotation: number) {
+    this.id = `UNT-${ulid()}`;
     this.game = game;
     this.position = position;
     this.rotation = rotation;
@@ -27,6 +31,7 @@ export default class Unit {
 
   serialize(): UnitData {
     return {
+      id: this.id,
       position: this.position,
       rotation: this.rotation,
       navigationPath: this.navPath,
@@ -87,19 +92,21 @@ export default class Unit {
     const isBlocked = this.game.map.isPositionOccupied(this, newPosition);
 
     if (isBlocked) {
-      this.speed -= .1;
-      if (this.speed < .5) this.speed = .5;
+      // this.speed -= .1;
+      // if (this.speed < .5) this.speed = .5;
 
-      if (this.speed === .5 && this.attemptedToReRoute < 3) {
-        this.attemptedToReRoute++;
-        const newPath = this.game.map.findAlternatePath(this);
+      // if (this.speed === .5 && this.attemptedToReRoute < 3) {
+      //   this.attemptedToReRoute++;
+      //   console.log('Re-routing');
 
-        if (newPath) {
-          this.navPath = newPath;
-          this.pathIndex = 0;
-        }
-        return;
-      }
+      //   // const newPath = this.game.map.findAlternatePath(this);
+
+      //   // if (newPath) {
+      //   //   this.navPath = newPath;
+      //   //   this.pathIndex = 0;
+      //   // }
+      //   // return;
+      // }
       return;
     }
     this.attemptedToReRoute = 0;
@@ -107,7 +114,6 @@ export default class Unit {
     if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
 
     this.position = newPosition;
-
     this.updateBoundingPolygon();
   }
 
