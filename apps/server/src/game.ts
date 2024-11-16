@@ -1,45 +1,66 @@
-import { GameMap } from '@code-and-conquer/interfaces';
 import Map from './map';
-import path from 'path';
-import fs from 'fs';
+import { MapName } from './mapFactory';
+import Player from './player';
+import Structure from './structure';
 import Unit from './unit';
 
+const TPS = 60;
+
+type GameSettings = {
+  map: MapName;
+  maxPlayers: number;
+  startingResources: number;
+};
+
 export default class Game {
-  public map: Map;
+  public players: Player[] = [];
   public units: Unit[] = [];
+  public structures: Structure[] = [];
+  public map: Map;
+  public settings: GameSettings;
 
-  public tick = 1;
+  private timer: NodeJS.Timeout;
 
-  tickGameLoop() {
-    // console.log('Game loop tick');
+  constructor(settings: GameSettings) {
+    console.log('Game created');
+    this.settings = settings;
 
-    // Run for each unit
-    this.units.forEach((unit) => {
-      unit.run();
-    });
+    // Load map
+    this.map = new Map(this, this.settings.map);
+  }
 
-    // Run for each structure
-    // TODO: Implement structure logic
+  start() {
+    // Timer
+    this.timer = setInterval(() => {
+      this.tick();
+    }, 1000 / TPS);
+  }
 
+  stop() {
+    clearInterval(this.timer);
+    this.timer = null;
+  }
 
-    // Update nav mesh
-    if (this.map) {
-      this.map.updateNavMesh();
+  tick() {
+    // Game loop
+    this.units.forEach((unit) => unit.tick());
+    this.structures.forEach((structure) => structure.tick());
+  }
+
+  addPlayer(player: Player) {
+    if (this.players.length >= this.settings.maxPlayers) {
+      throw new Error('Game is full');
     }
 
-    this.tick++;
-  }
+    if (this.timer) {
+      throw new Error('Game has already started');
+    }
 
-  loadMap(mapName: string) {
-    const map = this.openGameMap(mapName);
-    this.map = new Map(this, map);
-  }
+    // Apply Settings
+    player.resources = this.settings.startingResources;
 
-  openGameMap(mapName: string) {
-    const rawGameMap = fs.readFileSync(
-      path.join(__dirname, `maps/${mapName}.json`),
-      'utf8'
-    );
-    return JSON.parse(rawGameMap) as GameMap;
+    player.game = this;
+
+    this.players.push(player);
   }
 }
