@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
 import App from './app/app';
-import MapTest from './app/map_test';
+// import MapTest from './app/map_test';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

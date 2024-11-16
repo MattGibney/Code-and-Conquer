@@ -35,7 +35,7 @@ export function App() {
 
   const [clickedPosition, setClickedPosition] = useState<Position>({ x: 0, y: 0 });
 
-  const [viewingData, setViewingData] = useState<UnitData | undefined>();
+  const [viewingData, setViewingData] = useState<number | undefined>();
 
   useEffect(() => {
     // let socket: WebSocket | null = null;
@@ -106,8 +106,8 @@ export function App() {
         drawStructure(ctx, structure);
       });
 
-      data.units.forEach((unit) => {
-        const isViewing = (viewingData && viewingData.id === unit.id) || false;
+      data.units.forEach((unit, unitIdx) => {
+        const isViewing = (viewingData && viewingData === unitIdx) || false;
         drawUnit(ctx, unit, data.teams[0], { boundingPolygons: renderSettings.boundingPolygons}, isViewing);
       });
 
@@ -139,8 +139,8 @@ export function App() {
 
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const clickPos = {
-      x: (event.clientX - offset.x) / zoom,
-      y: (event.clientY - offset.y) / zoom,
+      x: (event.clientX / zoom) - offset.x,
+      y: (event.clientY / zoom) - offset.y,
     };
 
     if (isSettingWaypoints) {
@@ -164,13 +164,28 @@ export function App() {
 
     // Find unit with polygon within the position
     const unit = data.units.find((unit) => {
-      return unit.boundingPolygon.some((point) => {
-        return Math.abs(point.x - clickPos.x) < 1 && Math.abs(point.y - clickPos.y) < 1;
-      });
+      if (!unit.boundingPolygon) return false;
+
+      const polygon = unit.boundingPolygon;
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].x;
+        const yi = polygon[i].y;
+        const xj = polygon[j].x;
+        const yj = polygon[j].y;
+
+        const intersect = ((yi > clickPos.y) !== (yj > clickPos.y)) &&
+          (clickPos.x < (xj - xi) * (clickPos.y - yi) / (yj - yi) + xi);
+
+        if (intersect) inside = !inside;
+      }
+
+      return inside;
     });
 
     if (unit) {
-      setViewingData(unit);
+      const unitIdx = data.units.findIndex((u) => u.id === unit.id);
+      setViewingData(unitIdx);
     } else {
       setViewingData(undefined);
     }
@@ -261,13 +276,16 @@ export function App() {
           </div>
           <div>
             <h2 className='text-xl font-semibold'>Data</h2>
-            {viewingData ? (
-              <>Hi</>
-            ) : (
-              <div className="bg-gray-200 p-4 rounded-lg">
-                Click on a unit to view its data.
-              </div>
-            )}
+            <div className="bg-gray-200 p-4 rounded-lg">
+              {viewingData ? (
+                <>
+                  <p>ID: {data.units[viewingData].id}</p>
+                  <p>Position: {data.units[viewingData].position.x}, {data.units[viewingData].position.y}</p>
+                </>
+              ) : (
+                <>Click on a unit to view its data.</>
+              )}
+            </div>
           </div>
         </div>
       </div>

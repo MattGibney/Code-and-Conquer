@@ -13,7 +13,7 @@ game.loadMap('test_1');
 
 
 
-new Array(100).fill(0).forEach((_, i) => {
+new Array(10).fill(0).forEach((_, i) => {
   const x = 50 + (i % 40) * 10;
   const y = 50 + Math.floor(i / 40) * 10;
   game.units.push(
