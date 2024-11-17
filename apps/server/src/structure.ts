@@ -3,11 +3,13 @@ import Player from './player';
 import Unit from './unit';
 import { availablUnits, UnitClass } from './unitFactory';
 import Game from './game';
+import { ulid } from 'ulid';
 
 export default class Structure {
   public owner?: Player;
 
   public game: Game;
+  public id: string;
   public position: Position;
   public shape: StructureData['shape'];
   public health: {
@@ -23,6 +25,7 @@ export default class Structure {
     this.owner = owner;
 
     this.game = game;
+    this.id = `STR-${ulid()}`;
     this.position = structureData.position;
     this.shape = structureData.shape;
     this.health = {

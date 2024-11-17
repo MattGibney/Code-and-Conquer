@@ -1,3 +1,4 @@
+import { ulid } from 'ulid';
 import Map from './map';
 import { MapName } from './mapFactory';
 import Player from './player';
@@ -13,6 +14,8 @@ type GameSettings = {
 };
 
 export default class Game {
+  public id: string;
+
   public players: Player[] = [];
   public units: Unit[] = [];
   public structures: Structure[] = [];
@@ -23,6 +26,7 @@ export default class Game {
 
   constructor(settings: GameSettings) {
     console.log('Game created');
+    this.id = `GME-${ulid()}`;
     this.settings = settings;
 
     // Load map

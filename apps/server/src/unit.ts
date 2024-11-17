@@ -1,15 +1,20 @@
 import { Position } from '@code-and-conquer/interfaces';
 import Game from './game';
 import Player from './player';
+import { ulid } from 'ulid';
 
 export default class Unit {
   public game: Game;
   public player: Player;
+
+  public id: string;
   public position: Position;
 
   constructor(game: Game, player: Player, position: Position) {
     this.game = game;
     this.player = player;
+
+    this.id = `UNT-${ulid()}`;
     this.position = position;
   }
 
